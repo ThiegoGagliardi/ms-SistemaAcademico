@@ -1,0 +1,173 @@
+services:
+  sqlserver-aluno-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql_aluno_db
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "S3nhA4luno.0"
+      MSSQL_PID: "Express"
+    ports:
+      - "1432:1433"
+    volumes:
+      - sqldata_aluno:/var/opt/mssql
+    networks:
+      - sistema_academico
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"S3nhA4luno.0\" -Q \"SELECT 1\" || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  aluno-migrations:
+    build:
+      context: .
+      dockerfile: aluno.dockerfile.migrations
+      target: migrator
+    depends_on:
+      sqlserver-aluno-db:
+        condition: service_healthy
+    environment:      
+      # CORREÇÃO: Server=aluno-db (nome do serviço) e porta 1433 (interna)
+      DB_CONNECTION_STRING: "Server=sqlserver-aluno-db,1433;Database=AlunoMsBd;User Id=sa;Password=S3nhA4luno.0;TrustServerCertificate=True"
+    networks:
+      - sistema_academico
+
+  aluno-app:
+    build:
+      context: .
+      target: debug
+      dockerfile: aluno.dockerfile
+    container_name: alunoapp_container
+    ports:
+      - "8050:8050"
+      - "5050:5050"
+    environment:
+      # CORREÇÃO: Server=aluno-db
+      DB_CONNECTION_STRING: "Server=sqlserver-aluno-db,1433;Database=AlunoMsBd;User Id=sa;Password=S3nhA4luno.0;TrustServerCertificate=True"
+      ASPNETCORE_ENVIRONMENT: "Development"   
+    depends_on:
+      aluno-migrations: 
+        condition: service_completed_successfully
+    volumes:
+      - .:/src
+    restart: always
+    networks:
+      - sistema_academico
+
+  professor-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql-professor_db
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "S3nh@Profess0.r" 
+      MSSQL_PID: "Express"
+    ports:
+      - "1436:1433"
+    volumes:
+      - sqldata_professor:/var/opt/mssql
+    restart: always
+    networks:
+      - sistema_academico    
+    healthcheck: # ESSENCIAL para a condição 'service_healthy'
+      test: [ "CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"S3nh@Profess0.r\" -Q \"SELECT 1\" || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  professor-migrations:
+    build:
+      context: .
+      dockerfile: professor.dockerfile.migrations
+      target: migrator
+    depends_on:
+      professor-db:
+        condition: service_healthy 
+    environment:      
+      # CORREÇÃO: Server=professor-db
+      DB_CONNECTION_STRING: "Server=professor-db,1433;Database=ProfessorMsDb;User Id=sa;Password=S3nh@Profess0.r;TrustServerCertificate=True"        
+    networks:
+      - sistema_academico
+  professor-app:
+    build:
+      context: .
+      target: debug
+      dockerfile: professor.dockerfile # Se o seu arquivo principal for Dockerfile.API
+    container_name: professorapp_container    
+    ports:
+      - "8070:8070"
+      - "5070:5070"
+    environment:
+      # CORREÇÃO: Server=professor-db
+      DB_CONNECTION_STRING: "Server=professor-db,1433;Database=ProfessorMsDb;User Id=sa;Password=S3nh@Profess0.r;TrustServerCertificate=True"
+    depends_on:
+      professor-migrations: # A ÚNICA DEPENDÊNCIA NECESSÁRIA PARA GARANTIR A ORDEM
+        condition: service_completed_successfully
+    volumes:
+      - .:/src
+    restart: always
+    networks:
+      - sistema_academico
+
+  curso-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql-curso_db
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "S3nh@Curs.04" 
+      MSSQL_PID: "Express"
+    ports:
+      - "1434:1433"
+    volumes:
+      - sqldata_curso:/var/opt/mssql
+    restart: always
+    networks:
+      - sistema_academico
+    healthcheck: # ESSENCIAL para a condição 'service_healthy'
+      test: [ "CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"S3nh@Curs.04\" -Q \"SELECT 1\" || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  curso-migrations:
+    build:
+      context: .
+      dockerfile: curso.dockerfile.migrations
+      target: migrator
+    depends_on:
+      curso-db:
+        condition: service_healthy 
+    environment:      
+      # CORREÇÃO: Server=professor-db
+      DB_CONNECTION_STRING: "Server=curso-db,1433;Database=CursoMsDb;User Id=sa;Password=S3nh@Curs.04;TrustServerCertificate=True"        
+    networks:
+      - sistema_academico
+  curso-app:
+    build:
+      context: .
+      target: debug
+      dockerfile: curso.dockerfile # Se o seu arquivo principal for Dockerfile.API
+    container_name: cursoapp_container
+    ports:
+      - "8060:8060"
+      - "5060:5060"
+    environment:
+      # CORREÇÃO: Server=professor-db
+      DB_CONNECTION_STRING: "Server=curso-db,1433;Database=CursoMsDb;User Id=sa;Password=S3nh@Curs.04;TrustServerCertificate=True"
+    depends_on:
+      curso-migrations: # A ÚNICA DEPENDÊNCIA NECESSÁRIA PARA GARANTIR A ORDEM
+        condition: service_completed_successfully
+    volumes:
+      - .:/src
+    restart: always
+    networks:
+      - sistema_academico
+networks:
+  sistema_academico:
+    driver: bridge
+volumes:
+  sqldata_aluno:
+  sqldata_professor:
+  sqldata_curso:

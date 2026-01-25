@@ -1,0 +1,67 @@
+services:
+  # Serviço do SQL Server Express
+  aluno-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql_db
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "S3nh@A1un.0"
+      MSSQL_PID: "Express"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"S3nh@A1un.0\" -Q \"SELECT 1\" || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - app-network  # <--- ADICIONAR AQUI
+
+  # Migration
+  migrations:
+    build:
+      context: .
+      dockerfile: dockerfile.migrations
+    depends_on:
+      aluno-db:
+        condition: service_healthy
+    environment:
+      DB_CONNECTION_STRING: "Server=aluno-db,1433;Database=SistemaAcademicoBD;User Id=sa;Password=S3nh@A1un.0;TrustServerCertificate=True"
+    networks:
+      - app-network  # <--- ADICIONAR AQUI
+
+  # Serviço do Aplicativo .NET Core
+  msaluno-api:
+    build:
+      context: .
+      target: debug
+      dockerfile: dockerfile
+    container_name: msaluno-api    
+    ports:
+      - "8050:8050"
+      - "5050:5050"
+    environment:
+      DB_CONNECTION_STRING: "Server=aluno-db,1433;Database=SistemaAcademicoBD;User Id=sa;Password=S3nh@A1un.0;TrustServerCertificate=True"
+      ASPNETCORE_ENVIRONMENT: "Development"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    volumes:
+      - .:/src
+    restart: always
+    networks:
+      - app-network  # <--- ADICIONAR AQUI
+
+# Volumes para persistência de dados
+volumes:
+  sqldata:
+
+# REDE EXPLÍCITA - ADICIONAR ESTA SEÇÃO
+networks:
+  app-network:
+    driver: bridge
+    name: sistema-academico-network  # Nome personalizado (opcional)

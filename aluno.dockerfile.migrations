@@ -1,0 +1,20 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS migrator
+WORKDIR /src
+
+# Instala a ferramenta primeiro (camada de cache)
+RUN dotnet tool install --global dotnet-ef --version 8.0.0
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+# Copia o projeto e restaura
+COPY ["SistemaAcademicoAlunoMS/SistemaAcademicoAlunoMS.csproj", "SistemaAcademicoAlunoMS/"]
+RUN dotnet restore "SistemaAcademicoAlunoMS/SistemaAcademicoAlunoMS.csproj"
+
+# Copia o resto do código
+COPY . .
+
+WORKDIR "/src/SistemaAcademicoAlunoMS"
+
+# O comando 'database update' precisa de uma string de conexão. 
+# No Docker Compose, passamos via variável de ambiente DB_CONNECTION_STRING.
+# Certifique-se que seu Program.cs ou DbContext entenda essa variável.
+ENTRYPOINT ["dotnet", "ef", "database", "update"]

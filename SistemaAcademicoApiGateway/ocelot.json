@@ -1,0 +1,32 @@
+{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/api/professores",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "ms-professores",
+          "Port": 8070
+        }
+      ],
+      "UpstreamPathTemplate": "/api/professores",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ],
+      "Priority": 1
+    },
+
+    
+    {
+      "DownstreamPathTemplate": "/api/aluno",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "ms-aluno",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/aluno",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ],
+      "Priority": 1
+    }
+  ]
+}
