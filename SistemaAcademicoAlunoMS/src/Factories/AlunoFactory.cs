@@ -37,11 +37,9 @@ public class AlunoFactory : IAlunoFactory
             Id = aluno.Id,
             Nome = aluno.Nome,
             RA = aluno.RA
-        };
+        };        
 
-        var cursos = aluno.Matriculas.DistinctBy(c => c.CursoId).ToList();
-
-        foreach (var c in cursos)
+        foreach (var c in aluno.Matriculas)
         {
             alunoDTO.CursosMatriculados.Add(c.NomeCurso);
         }
@@ -54,9 +52,11 @@ public class AlunoFactory : IAlunoFactory
 
             AlunoCursoDisciplinaRetornoDTO disciplinaDTO = new()
             {
+                Aluno = aluno.Nome,
+                Curso = d.NomeCurso,
                 Disciplina = d.NomeDisciplina,
                 SiglaDisciplina  = d.SiglaDisciplina,
-                Curso = curso.NomeCurso                
+                Status = d.Status.ToString()
             };
 
             alunoDTO.GradeHoraria.Add(disciplinaDTO);

@@ -49,24 +49,27 @@ public class AlunoRepository : IAlunoRepository
         if (matriculaLocate != null)
             throw new Exception("Aluno já matriculado.");
 
-        alunoLocate.Matriculas.Add(matricula);
         
         var response  = await _http.GetAsync($"{matricula.CursoId}");
         response.EnsureSuccessStatusCode();
 
-        var disciplinas = await response.Content.ReadFromJsonAsync<List<CursoDisciplinaRetornoDTO>>();
+        var curso = await response.Content.ReadFromJsonAsync<CursoDisciplinaRetornoDTO>();
 
-        foreach(var d in disciplinas)
+        matricula.NomeCurso = curso.Nome;
+
+        alunoLocate.Matriculas.Add(matricula);        
+
+        foreach(var d in curso.Disciplinas)
         {
             AlunoCursoDisciplina disciplina = new()
             {
                 AlunoId = matricula.AlunoId,
-                CursoId = d.CursoId,
-                DisciplinaId = d.DisciplinaId,
+                CursoId = curso.Id,
+                DisciplinaId = d.Id,
 
-                NomeCurso = d.NomeCurso,
-                NomeDisciplina = d.NomeDisciplina,
-                SiglaDisciplina = d.SiglaDisciplina,
+                NomeCurso = curso.Nome,
+                NomeDisciplina = d.Nome,
+                SiglaDisciplina = d.Sigla,
 
                 DataInicio = matricula.DataInicio,
                 DataFim    = matricula.DataInicio.AddMonths(6)               
@@ -108,6 +111,7 @@ public class AlunoRepository : IAlunoRepository
     {
         var alunoLocate = await _context.Alunos
                                         .Include(m => m.Matriculas)
+                                        .Include(d => d.Disciplinas)
                                         .Include(n => n.Notas)                                        
                                         .AsSplitQuery()
                                         .FirstOrDefaultAsync(a => a.Id == id);

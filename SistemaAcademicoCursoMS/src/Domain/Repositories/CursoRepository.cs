@@ -95,7 +95,10 @@ public class CursoRepository : ICursoRepository
 
     public async Task<Curso> GetByIdAsync(int id)
     {
-        var cursoLocate = await _context.Cursos.Include(c => c.Disciplinas).FirstOrDefaultAsync(p => p.Id == id);
+        var cursoLocate = await _context.Cursos
+                                        .Include(c => c.Disciplinas)
+                                        .ThenInclude(d => d.Disciplina)
+                                        .FirstOrDefaultAsync(p => p.Id == id);
 
         if (cursoLocate == null)
             throw new Exception("Curso não localizado");

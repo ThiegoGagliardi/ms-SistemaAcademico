@@ -36,7 +36,14 @@ if (!string.IsNullOrEmpty(dockerConnectionString))
     connectionString = dockerConnectionString;
 }
 
-builder.Services.AddDbContext<AlunoDbContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<AlunoDbContext>(options => options.UseSqlServer(connectionString,
+        sqlServerOptionsAction: sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        }));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -54,7 +61,7 @@ builder.Services.AddHttpClient();
 
 builder.Services.AddHttpClient<IAlunoRepository, AlunoRepository>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:8060/api/Curso/");
+    client.BaseAddress = new Uri("http://cursoapp_container:8060/api/Curso/");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
